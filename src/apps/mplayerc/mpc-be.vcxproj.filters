@@ -318,6 +318,9 @@
     <ClCompile Include="WebClient.cpp">
       <Filter>WebServer</Filter>
     </ClCompile>
+    <ClCompile Include="LampaBridge.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="LampaBridgeJson.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="LampaBridgeSession.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="WebServer.cpp">
       <Filter>WebServer</Filter>
     </ClCompile>
@@ -782,6 +785,9 @@
     <ClInclude Include="WebClient.h">
       <Filter>WebServer</Filter>
     </ClInclude>
+    <ClInclude Include="LampaBridge.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="LampaBridgeJson.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="LampaBridgeSession.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="WebServer.h">
       <Filter>WebServer</Filter>
     </ClInclude>

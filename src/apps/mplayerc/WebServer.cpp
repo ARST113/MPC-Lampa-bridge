@@ -25,6 +25,7 @@
 #include "DSUtil/FileHandle.h"
 #include "WebServer.h"
 #include "WebClient.h"
+#include "LampaBridge.h"
 
 CWebServerSocket::CWebServerSocket(CWebServer* pWebServer, int port)
 	: m_pWebServer(pWebServer)
@@ -56,6 +57,11 @@ const std::map<CString, CWebServer::RequestHandler> CWebServer::m_internalpages 
 	{ L"/status.html",    &CWebClientSocket::OnStatus       },
 	{ L"/player.html",    &CWebClientSocket::OnPlayer       },
 	{ L"/variables.html", &CWebClientSocket::OnVariables    },
+	{ L"/lampa/health",  &CWebClientSocket::OnLampaHealth  },
+	{ L"/lampa/open",    &CWebClientSocket::OnLampaOpen    },
+	{ L"/lampa/status",  &CWebClientSocket::OnLampaStatus  },
+	{ L"/lampa/command", &CWebClientSocket::OnLampaCommand },
+	{ L"/lampa/close",   &CWebClientSocket::OnLampaClose   },
 	{ L"/snapshot.jpg",   &CWebClientSocket::OnSnapShotJpeg },
 	{ L"/404.html",       &CWebClientSocket::OnError404     },
 };
@@ -355,6 +361,17 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 	}
 
 	RequestHandler rh = nullptr;
+		if (m_cmd == L"OPTIONS") {
+			if (CLampaBridge::Instance().IsLampaPath(m_path)) {
+				hdr = "HTTP/1.1 200 OK\r\n";
+				mime = "application/json; charset=utf-8";
+				CLampaBridge::Instance().AddCors(hdr);
+				body = "{\"ok\":true}";
+				fHandled = true;
+			}
+		}
+
+
 	if (!fHandled) {
 		auto it = m_internalpages.find(pClient->m_path);
 		if (it != m_internalpages.end() && (pClient->*(*it).second)(hdr, body, mime)) {

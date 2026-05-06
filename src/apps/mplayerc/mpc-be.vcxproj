@@ -213,6 +213,9 @@
     <ClCompile Include="UpdateChecker.cpp" />
     <ClCompile Include="vkCodes.cpp" />
     <ClCompile Include="WebClient.cpp" />
+    <ClCompile Include="LampaBridge.cpp" />
+    <ClCompile Include="LampaBridgeJson.cpp" />
+    <ClCompile Include="LampaBridgeSession.cpp" />
     <ClCompile Include="WebServer.cpp" />
     <ClCompile Include="WicUtils.cpp" />
     <ClCompile Include="WindowsUserChoice.cpp" />
@@ -352,6 +355,9 @@
     <ClInclude Include="UpdateChecker.h" />
     <ClInclude Include="vkCodes.h" />
     <ClInclude Include="WebClient.h" />
+    <ClInclude Include="LampaBridge.h" />
+    <ClInclude Include="LampaBridgeJson.h" />
+    <ClInclude Include="LampaBridgeSession.h" />
     <ClInclude Include="WebServer.h" />
     <ClInclude Include="WicUtils.h" />
     <ClInclude Include="Win10Api.h" />
