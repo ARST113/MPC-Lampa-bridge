@@ -67,4 +67,9 @@ public:
 	bool OnError404    (CStringA& hdr, CStringA& body, CStringA& mime);
 	bool OnPlayer      (CStringA& hdr, CStringA& body, CStringA& mime);
 	bool OnSnapShotJpeg(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnLampaHealth(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnLampaOpen(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnLampaStatus(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnLampaCommand(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnLampaClose(CStringA& hdr, CStringA& body, CStringA& mime);
 };

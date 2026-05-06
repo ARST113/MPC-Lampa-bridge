@@ -27,6 +27,7 @@
 #include "WebClient.h"
 #include "DIB.h"
 #include "DSUtil/FileHandle.h"
+#include "LampaBridge.h"
 
 #include "Version.h"
 
@@ -861,4 +862,40 @@ bool CWebClientSocket::OnSnapShotJpeg(CStringA& hdr, CStringA& body, CStringA& m
 	}
 
 	return false;
+}
+
+
+bool CWebClientSocket::OnLampaHealth(CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	mime = "application/json; charset=utf-8";
+	CLampaBridge::Instance().AddCors(hdr);
+	return CLampaBridge::Instance().Health(body);
+}
+
+bool CWebClientSocket::OnLampaOpen(CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	mime = "application/json; charset=utf-8";
+	CLampaBridge::Instance().AddCors(hdr);
+	return CLampaBridge::Instance().Open(m_pMainFrame, m_data, body);
+}
+
+bool CWebClientSocket::OnLampaStatus(CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	mime = "application/json; charset=utf-8";
+	CLampaBridge::Instance().AddCors(hdr);
+	return CLampaBridge::Instance().Status(m_pMainFrame, body);
+}
+
+bool CWebClientSocket::OnLampaCommand(CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	mime = "application/json; charset=utf-8";
+	CLampaBridge::Instance().AddCors(hdr);
+	return CLampaBridge::Instance().Command(m_pMainFrame, m_data, body);
+}
+
+bool CWebClientSocket::OnLampaClose(CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	mime = "application/json; charset=utf-8";
+	CLampaBridge::Instance().AddCors(hdr);
+	return CLampaBridge::Instance().Close(m_pMainFrame, body);
 }
