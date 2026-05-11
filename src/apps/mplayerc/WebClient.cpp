@@ -187,7 +187,7 @@ void CWebClientSocket::Header()
 		}
 	}
 
-	if (m_cmd == L"GET" || m_cmd == L"HEAD" || m_cmd == L"POST") {
+	if (m_cmd == L"GET" || m_cmd == L"HEAD" || m_cmd == L"POST" || m_cmd == L"OPTIONS") {
 		int k = m_path.Find('?');
 		if (k >= 0) {
 			m_query = m_path.Mid(k + 1);

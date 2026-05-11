@@ -12,6 +12,13 @@ Base URL: `http://127.0.0.1:13579`
 
 All endpoints return JSON and include CORS headers for localhost plugin calls.
 
+## Before testing
+1. Enable MPC-BE Web Server in settings.
+2. Set port to 13579 or use the configured port in all requests.
+3. Keep localhost-only mode enabled for safety.
+4. Verify /lampa/health before testing /lampa/open.
+
+
 ## Open payload
 See project task contract: root `url/title/position`, optional `timeline`, optional `playlist[]`.
 If playlist is empty, bridge creates one-item playlist from root fields.
