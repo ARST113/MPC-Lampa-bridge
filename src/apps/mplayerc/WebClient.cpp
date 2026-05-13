@@ -899,3 +899,32 @@ bool CWebClientSocket::OnLampaClose(CStringA& hdr, CStringA& body, CStringA& mim
 	CLampaBridge::Instance().AddCors(hdr);
 	return CLampaBridge::Instance().Close(m_pMainFrame, body);
 }
+
+
+bool CWebClientSocket::OnBridgePing(CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	mime = "application/json; charset=utf-8";
+	CLampaBridge::Instance().AddCors(hdr);
+	return CLampaBridge::Instance().Ping(body);
+}
+
+bool CWebClientSocket::OnBridgeState(CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	mime = "application/json; charset=utf-8";
+	CLampaBridge::Instance().AddCors(hdr);
+	CString sid, token; int limit = 50;
+	auto it = m_get.find(L"sid"); if (it != m_get.end()) sid = it->second;
+	it = m_get.find(L"token"); if (it != m_get.end()) token = it->second;
+	return CLampaBridge::Instance().State(sid, token, m_pMainFrame, body);
+}
+
+bool CWebClientSocket::OnBridgeEvents(CStringA& hdr, CStringA& body, CStringA& mime)
+{
+	mime = "application/json; charset=utf-8";
+	CLampaBridge::Instance().AddCors(hdr);
+	CString sid, token, lim; int limit = 50;
+	auto it = m_get.find(L"sid"); if (it != m_get.end()) sid = it->second;
+	it = m_get.find(L"token"); if (it != m_get.end()) token = it->second;
+	it = m_get.find(L"limit"); if (it != m_get.end()) limit = _wtoi(it->second);
+	return CLampaBridge::Instance().Events(sid, token, limit, body);
+}
