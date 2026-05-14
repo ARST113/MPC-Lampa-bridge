@@ -3,6 +3,18 @@
 
 using namespace rapidjson;
 
+
+
+static CStringA JsonValueOrAlias(const rapidjson::Value& obj, const char* k, const char* a)
+{
+	CStringA v;
+	getJsonValue(obj, k, v);
+	if (v.IsEmpty() && a) {
+		getJsonValue(obj, a, v);
+	}
+	return v;
+}
+
 static double GetNumberOrDefault(const Value& obj, const char* key, double def)
 {
 	if (const auto it = obj.FindMember(key); it != obj.MemberEnd()) {
@@ -41,6 +53,15 @@ bool LampaBridgeJson::ParseOpenPayload(const CStringA& body, LampaOpenPayload& p
 			payload.playlist.emplace_back(std::move(p));
 		}
 	}
+	payload.bridgeSessionId = UTF8To16(JsonValueOrAlias(d, "bridge_session_id", "ddd_sid"));
+	payload.bridgeClient = UTF8To16(JsonValueOrAlias(d, "bridge_client", "ddd_client"));
+	payload.bridgeMode = UTF8To16(JsonValueOrAlias(d, "bridge_mode", "ddd_mode"));
+	payload.bridgeLocalToken = UTF8To16(JsonValueOrAlias(d, "bridge_local_token", "ddd_token"));
+	if (const auto it = d.FindMember("bridge_emit_position"); it != d.MemberEnd() && it->value.IsBool()) payload.bridgeEmitPosition = it->value.GetBool();
+	payload.bridgePositionIntervalMs = (int)GetNumberOrDefault(d, "bridge_position_interval_ms", 1000.0);
+	payload.bridgeSchemaVersion = (int)GetNumberOrDefault(d, "bridge_schema_version", 1.0);
+	if (payload.bridgePositionIntervalMs <= 0) payload.bridgePositionIntervalMs = 1000;
+	if (payload.bridgeSchemaVersion <= 0) payload.bridgeSchemaVersion = 1;
 	if (payload.url.IsEmpty()) { error = L"url is empty"; return false; }
 	return true;
 }
@@ -53,4 +74,30 @@ CStringA LampaBridgeJson::EscapeJson(const CString& value)
 	s.Replace("\r", "");
 	s.Replace("\n", "\\n");
 	return s;
+}
+
+
+CStringA LampaBridgeJson::BuildEnvelopeJson(int schema, const CStringA& type, const CStringA& client, const CStringA& sessionId, int64_t ts, const CStringA& payloadJson)
+{
+	CStringA out;
+	out.Format("{\"schema\":%d,\"type\":\"%s\",\"client\":\"%s\",\"sessionId\":\"%s\",\"ts\":%lld,\"payload\":%s}", schema, EscapeJson(UTF8To16(type)).GetString(), EscapeJson(UTF8To16(client)).GetString(), EscapeJson(UTF8To16(sessionId)).GetString(), ts, payloadJson.IsEmpty()?"{}":payloadJson.GetString());
+	return out;
+}
+
+CStringA LampaBridgeJson::BuildStateResponse(const LampaBridgeEnvelope* state)
+{
+	if (!state) return "{\"ok\":true,\"state\":null}";
+	return "{\"ok\":true,\"state\":{\"sessionId\":\"" + EscapeJson(UTF8To16(state->sessionId)) + "\",\"lastEvent\":" + BuildEnvelopeJson(state->schema, state->type, state->client, state->sessionId, state->ts, state->payloadJson) + "}}";
+}
+
+CStringA LampaBridgeJson::BuildEventsResponse(const std::deque<LampaBridgeEnvelope>& events, int limit)
+{
+	CStringA body = "{\"ok\":true,\"events\":[";
+	int count = 0;
+	for (auto it = events.rbegin(); it != events.rend() && count < limit; ++it, ++count) {
+		if (count) body += ",";
+		body += BuildEnvelopeJson(it->schema, it->type, it->client, it->sessionId, it->ts, it->payloadJson);
+	}
+	body += "]}";
+	return body;
 }

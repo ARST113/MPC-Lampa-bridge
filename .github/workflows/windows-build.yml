@@ -1,0 +1,63 @@
+name: Windows Build and Bridge Static Checks
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bridge endpoint checks
+        run: |
+          rg -n '/ping|/state|/events' src/apps/mplayerc/WebServer.cpp src/apps/mplayerc/WebClient.cpp
+      - name: snake_case event types
+        run: |
+          rg -n '\"session_started\"|\"playback_state_changed\"|\"position_tick\"|\"seek_completed\"|\"playlist_item_changed\"|\"playback_ended\"|\"session_finished\"|\"error\"' src/apps/mplayerc/LampaBridge.cpp
+      - name: payload fields present
+        run: |
+          rg -n '\"position\"|\"duration\"|\"windowIndex\"|\"playlistSize\"' src/apps/mplayerc/LampaBridge.cpp
+          rg -n 'lastEvent' src/apps/mplayerc/LampaBridgeJson.cpp
+      - name: old fields absent
+        run: |
+          ! rg -n '\"positionMs\"|\"durationMs\"|\"activeIndex\"' src/apps/mplayerc/LampaBridge.cpp
+
+  windows-msbuild:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: microsoft/setup-msbuild@v2
+      - name: Build mpc-be.vcxproj
+        id: build_proj
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          msbuild src/apps/mplayerc/mpc-be.vcxproj /m /p:Configuration=Release /p:Platform=x64 /p:PreferredToolArchitecture=x64 /fl /flp:logfile=msbuild-project.log;verbosity=diag
+      - name: Build solution fallback
+        if: steps.build_proj.outcome == 'failure'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          msbuild mpc-be.sln /m /p:Configuration=Release /p:Platform=x64 /p:PreferredToolArchitecture=x64 /fl /flp:logfile=msbuild-sln.log;verbosity=diag
+      - name: Step summary
+        shell: pwsh
+        run: |
+          "## Windows MSBuild results" >> $env:GITHUB_STEP_SUMMARY
+          "Project build outcome: ${{ steps.build_proj.outcome }}" >> $env:GITHUB_STEP_SUMMARY
+          if (Test-Path msbuild-project.log) { "- project log generated" >> $env:GITHUB_STEP_SUMMARY }
+          if (Test-Path msbuild-sln.log) { "- sln fallback log generated" >> $env:GITHUB_STEP_SUMMARY }
+      - name: Upload logs/artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-logs
+          path: |
+            msbuild-project.log
+            msbuild-sln.log
+            bin/**
+            src/apps/mplayerc/Release/**
