@@ -1,0 +1,106 @@
+name: Windows Build and Bridge Static Checks
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bridge endpoint checks
+        run: rg -n '/ping|/state|/events' src/apps/mplayerc/WebServer.cpp src/apps/mplayerc/WebClient.cpp
+      - name: snake_case event types
+        run: rg -n '"session_started"|"playback_state_changed"|"position_tick"|"seek_completed"|"playlist_item_changed"|"playback_ended"|"session_finished"|"error"' src/apps/mplayerc/LampaBridge.cpp
+      - name: payload fields present
+        run: |
+          rg -n '"position"|"duration"|"windowIndex"|"playlistSize"' src/apps/mplayerc/LampaBridge.cpp
+          rg -n 'lastEvent' src/apps/mplayerc/LampaBridgeJson.cpp
+      - name: old fields absent in bridge payloads
+        run: '! rg -n ''"positionMs"|"durationMs"|"activeIndex"'' src/apps/mplayerc/LampaBridge.cpp'
+
+  windows-msbuild:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Environment diagnostics
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -all -products * -format json
+          where.exe msbuild
+          msbuild -version
+          Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" -ErrorAction SilentlyContinue
+          Get-ChildItem -Recurse -Filter "*.sln" | Select-Object FullName
+          Get-ChildItem -Recurse -Filter "*.vcxproj" | Select-Object FullName
+
+      - name: Build mpc-be.vcxproj
+        id: build_proj
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          msbuild src/apps/mplayerc/mpc-be.vcxproj /m /p:Configuration=Release /p:Platform=x64 /p:PreferredToolArchitecture=x64 /verbosity:minimal /fl /flp:logfile=msbuild-project.log;verbosity=diag /bl:msbuild-project.binlog
+
+      - name: Build solution fallback
+        id: build_sln
+        if: steps.build_proj.outcome == 'failure'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          msbuild mpc-be.sln /m /p:Configuration=Release /p:Platform=x64 /p:PreferredToolArchitecture=x64 /verbosity:minimal /fl /flp:logfile=msbuild-sln.log;verbosity=diag /bl:msbuild-sln.binlog
+
+      - name: Extract first real errors
+        if: always()
+        shell: pwsh
+        run: |
+          $patterns = @(': error ', 'fatal error', 'MSB', 'LNK', 'cannot open include file', 'The build tools for', 'Windows SDK')
+          $out = @()
+          foreach ($f in @('msbuild-project.log','msbuild-sln.log')) {
+            if (Test-Path $f) {
+              $out += "===== $f ====="
+              foreach ($p in $patterns) {
+                $limit = 20
+                if ($p -eq ': error ') { $limit = 50 }
+                $lines = Select-String -Path $f -Pattern $p -SimpleMatch | Select-Object -First $limit
+                if ($lines) {
+                  $out += "--- pattern: $p ---"
+                  $out += ($lines | ForEach-Object { $_.Line })
+                }
+              }
+            }
+          }
+          if (-not $out) { $out += 'No matching error signatures found in logs.' }
+          $out | Set-Content extracted-errors.txt
+          Get-Content extracted-errors.txt
+          "## Windows MSBuild results" >> $env:GITHUB_STEP_SUMMARY
+          "Project build outcome: ${{ steps.build_proj.outcome }}" >> $env:GITHUB_STEP_SUMMARY
+          "Solution build outcome: ${{ steps.build_sln.outcome }}" >> $env:GITHUB_STEP_SUMMARY
+          "### Extracted errors" >> $env:GITHUB_STEP_SUMMARY
+          Get-Content extracted-errors.txt | ForEach-Object { "- $_" >> $env:GITHUB_STEP_SUMMARY }
+
+      - name: Upload logs/artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-logs
+          path: |
+            msbuild-project.log
+            msbuild-project.binlog
+            msbuild-sln.log
+            msbuild-sln.binlog
+            extracted-errors.txt
+            bin/**
+            src/apps/mplayerc/Release/**
+
+      - name: Fail if both builds failed
+        if: steps.build_proj.outcome == 'failure' && (steps.build_sln.outcome == 'failure' || steps.build_sln.outcome == '')
+        shell: pwsh
+        run: |
+          Write-Error "Both project and solution builds failed. See extracted-errors.txt and binlogs."
