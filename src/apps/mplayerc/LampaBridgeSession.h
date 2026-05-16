@@ -22,8 +22,13 @@ struct LampaBridgePlaylistItem {
 	CString title;
 	CString url;
 	CString timelineHash;
+	CString thumbnail;
+	CString filename;
+	int season = -1;
+	int episode = -1;
 	double position = -1.0;
 	double duration = 0.0;
+	double timelinePercent = 0.0;
 };
 
 struct LampaBridgeSession {
