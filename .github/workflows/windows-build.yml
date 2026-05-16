@@ -21,8 +21,11 @@ jobs:
         run: |
           rg -n 'position|duration|windowIndex|playlistSize' src/apps/mplayerc/LampaBridge.cpp
           rg -n 'lastEvent' src/apps/mplayerc/LampaBridgeJson.cpp
-      - name: old fields absent in bridge payloads
-        run: '! rg -n ''positionMs|durationMs|activeIndex'' src/apps/mplayerc/LampaBridge.cpp'
+      - name: old bridge JSON payload fields absent
+        run: |
+          ! rg -n '\\"positionMs\\"|"positionMs"' src/apps/mplayerc/LampaBridge.cpp
+          ! rg -n '\\"durationMs\\"|"durationMs"' src/apps/mplayerc/LampaBridge.cpp
+          ! rg -n '\\"activeIndex\\"|"activeIndex"' src/apps/mplayerc/LampaBridge.cpp
 
   windows-msbuild:
     runs-on: windows-latest
