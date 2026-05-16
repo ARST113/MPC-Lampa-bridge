@@ -12,6 +12,17 @@ void LampaBridgeSession::Clear()
 	requestedPosition = -1.0;
 	timelineDuration = 0.0;
 	timelinePercent = 0.0;
+	client = L"lampa";
+	bridgeMode = L"local";
+	localToken.Empty();
+	emitPosition = true;
+	positionIntervalMs = 1000;
+	schemaVersion = 1;
+	store = LampaBridgeStore{};
+	lastPositionEventTs = 0;
+	lastPlaybackState.Empty();
+	lastIsPlaying = false;
+	lastIsBuffering = false;
 }
 
 bool LampaBridgeSession::HasActive() const
