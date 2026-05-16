@@ -46,6 +46,23 @@ static double GetNumberOrDefault(const Value& obj, const char* key, double def)
 	return def;
 }
 
+static CString JsonStringOrAlias(const Value& obj, std::initializer_list<const char*> keys)
+{
+	CStringA tmp;
+	for (const char* key : keys) {
+		getJsonValue(obj, key, tmp);
+		if (!tmp.IsEmpty()) return Utf8ToWide(tmp);
+	}
+	return CString();
+}
+
+static int GetIntOrDefault(const Value& obj, const char* key, int def)
+{
+	if (const auto it = obj.FindMember(key); it != obj.MemberEnd() && it->value.IsInt()) return it->value.GetInt();
+	if (const auto it = obj.FindMember(key); it != obj.MemberEnd() && it->value.IsNumber()) return (int)it->value.GetDouble();
+	return def;
+}
+
 bool LampaBridgeJson::ParseOpenPayload(const CStringA& body, LampaOpenPayload& payload, CString& error)
 {
 	Document d;
@@ -53,10 +70,16 @@ bool LampaBridgeJson::ParseOpenPayload(const CStringA& body, LampaOpenPayload& p
 		error = L"invalid json";
 		return false;
 	}
-	CStringA tmp;
-	getJsonValue(d, "url", tmp); payload.url = Utf8ToWide(tmp);
-	getJsonValue(d, "title", tmp); payload.title = Utf8ToWide(tmp);
+	payload.url = JsonStringOrAlias(d, {"url", "uri", "src", "path"});
+	payload.title = JsonStringOrAlias(d, {"title", "name", "filename", "file_name"});
 	payload.position = GetNumberOrDefault(d, "position", -1.0);
+	payload.playlistIndex = GetIntOrDefault(d, "playlist_index", -1);
+	payload.startIndex = GetIntOrDefault(d, "start_index", -1);
+	payload.dddIndex = GetIntOrDefault(d, "ddd_i", -1);
+	payload.dddStart = GetIntOrDefault(d, "ddd_start", -1);
+	payload.index = GetIntOrDefault(d, "index", -1);
+	payload.windowIndex = GetIntOrDefault(d, "windowIndex", -1);
+	CStringA tmp;
 	getJsonValue(d, "timeline_hash", tmp); payload.timelineHash = Utf8ToWide(tmp);
 	if (const Value* timeline = GetJsonObject(d, "timeline")) {
 		getJsonValue(*timeline, "hash", tmp); if (payload.timelineHash.IsEmpty()) payload.timelineHash = Utf8ToWide(tmp);
@@ -68,11 +91,21 @@ bool LampaBridgeJson::ParseOpenPayload(const CStringA& body, LampaOpenPayload& p
 		for (const auto& item : playlist->GetArray()) {
 			if (!item.IsObject()) continue;
 			LampaBridgePlaylistItem p;
-			getJsonValue(item, "url", tmp); p.url = Utf8ToWide(tmp);
+			p.url = JsonStringOrAlias(item, {"url", "uri", "src", "path"});
 			if (p.url.IsEmpty()) continue;
-			getJsonValue(item, "title", tmp); p.title = Utf8ToWide(tmp);
+			p.title = JsonStringOrAlias(item, {"title", "name", "filename", "file_name"});
+			p.filename = JsonStringOrAlias(item, {"filename", "file_name", "name", "title"});
+			p.thumbnail = JsonStringOrAlias(item, {"thumbnail", "img"});
 			getJsonValue(item, "timeline_hash", tmp); p.timelineHash = Utf8ToWide(tmp);
-			p.position = GetNumberOrDefault(item, "position", -1.0);
+			if (const Value* itemTimeline = GetJsonObject(item, "timeline")) {
+				getJsonValue(*itemTimeline, "hash", tmp); if (p.timelineHash.IsEmpty()) p.timelineHash = Utf8ToWide(tmp);
+				p.position = GetNumberOrDefault(*itemTimeline, "time", -1.0);
+				p.duration = GetNumberOrDefault(*itemTimeline, "duration", 0.0);
+				p.timelinePercent = GetNumberOrDefault(*itemTimeline, "percent", 0.0);
+			}
+			p.position = GetNumberOrDefault(item, "position", p.position);
+			p.season = GetIntOrDefault(item, "season", GetIntOrDefault(item, "season_number", GetIntOrDefault(item, "s", -1)));
+			p.episode = GetIntOrDefault(item, "episode", GetIntOrDefault(item, "episode_number", GetIntOrDefault(item, "e", -1)));
 			payload.playlist.emplace_back(std::move(p));
 		}
 	}
@@ -85,6 +118,7 @@ bool LampaBridgeJson::ParseOpenPayload(const CStringA& body, LampaOpenPayload& p
 	payload.bridgeSchemaVersion = (int)GetNumberOrDefault(d, "bridge_schema_version", 1.0);
 	if (payload.bridgePositionIntervalMs <= 0) payload.bridgePositionIntervalMs = 1000;
 	if (payload.bridgeSchemaVersion <= 0) payload.bridgeSchemaVersion = 1;
+	if (payload.url.IsEmpty() && !payload.playlist.empty()) payload.url = payload.playlist.front().url;
 	if (payload.url.IsEmpty()) { error = L"url is empty"; return false; }
 	return true;
 }
@@ -122,9 +156,12 @@ CStringA LampaBridgeJson::BuildEventsResponse(const std::deque<LampaBridgeEnvelo
 {
 	CStringA body = "{\"ok\":true,\"events\":[";
 	int count = 0;
-	for (auto it = events.rbegin(); it != events.rend() && count < limit; ++it, ++count) {
-		if (count) body += ",";
-		body += BuildEnvelopeJson(it->schema, it->type, it->client, it->sessionId, it->ts, it->payloadJson);
+	int start = (int)events.size() - limit;
+	if (start < 0) start = 0;
+	for (int i = start; i < (int)events.size(); ++i) {
+		if (count++) body += ",";
+		const auto& e = events[(size_t)i];
+		body += BuildEnvelopeJson(e.schema, e.type, e.client, e.sessionId, e.ts, e.payloadJson);
 	}
 	body += "]}";
 	return body;

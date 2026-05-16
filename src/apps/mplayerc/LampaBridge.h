@@ -31,6 +31,8 @@ public:
 	void EmitError(const CStringA& code, const CStringA& message);
 private:
 	LampaBridgeSession m_session;
+	CString NormalizePlayableUrl(const CString& url) const;
+	int ResolveActiveIndex(const LampaOpenPayload& payload) const;
 	bool OpenIndex(CMainFrame* pMainFrame, int index);
 	void FillStatus(CMainFrame* pMainFrame, CStringA& body);
 	bool CheckToken(const CString& token) const;

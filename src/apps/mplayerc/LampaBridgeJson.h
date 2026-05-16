@@ -12,6 +12,12 @@ struct LampaOpenPayload {
 	double timelineTime = -1.0;
 	double timelineDuration = 0.0;
 	double timelinePercent = 0.0;
+	int playlistIndex = -1;
+	int startIndex = -1;
+	int dddIndex = -1;
+	int dddStart = -1;
+	int index = -1;
+	int windowIndex = -1;
 	std::vector<LampaBridgePlaylistItem> playlist;
 	CString bridgeSessionId;
 	CString bridgeClient;
