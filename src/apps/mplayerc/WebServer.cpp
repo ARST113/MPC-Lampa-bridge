@@ -62,6 +62,9 @@ const std::map<CString, CWebServer::RequestHandler> CWebServer::m_internalpages 
 	{ L"/lampa/status",  &CWebClientSocket::OnLampaStatus  },
 	{ L"/lampa/command", &CWebClientSocket::OnLampaCommand },
 	{ L"/lampa/close",   &CWebClientSocket::OnLampaClose   },
+	{ L"/ping",          &CWebClientSocket::OnBridgePing   },
+	{ L"/state",         &CWebClientSocket::OnBridgeState  },
+	{ L"/events",        &CWebClientSocket::OnBridgeEvents },
 	{ L"/snapshot.jpg",   &CWebClientSocket::OnSnapShotJpeg },
 	{ L"/404.html",       &CWebClientSocket::OnError404     },
 };
@@ -361,8 +364,8 @@ void CWebServer::OnRequest(CWebClientSocket* pClient, CStringA& hdr, CStringA& b
 	}
 
 	RequestHandler rh = nullptr;
-		if (m_cmd == L"OPTIONS") {
-			if (CLampaBridge::Instance().IsLampaPath(m_path)) {
+		if (pClient->m_cmd == L"OPTIONS") {
+			if (CLampaBridge::Instance().IsBridgePath(pClient->m_path)) {
 				hdr = "HTTP/1.1 200 OK\r\n";
 				mime = "application/json; charset=utf-8";
 				CLampaBridge::Instance().AddCors(hdr);

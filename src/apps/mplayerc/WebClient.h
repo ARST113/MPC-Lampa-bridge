@@ -72,4 +72,7 @@ public:
 	bool OnLampaStatus(CStringA& hdr, CStringA& body, CStringA& mime);
 	bool OnLampaCommand(CStringA& hdr, CStringA& body, CStringA& mime);
 	bool OnLampaClose(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnBridgePing(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnBridgeState(CStringA& hdr, CStringA& body, CStringA& mime);
+	bool OnBridgeEvents(CStringA& hdr, CStringA& body, CStringA& mime);
 };
