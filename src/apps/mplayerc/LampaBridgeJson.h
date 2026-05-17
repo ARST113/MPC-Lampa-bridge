@@ -12,6 +12,12 @@ struct LampaOpenPayload {
 	double timelineTime = -1.0;
 	double timelineDuration = 0.0;
 	double timelinePercent = 0.0;
+	int playlistIndex = -1;
+	int startIndex = -1;
+	int dddIndex = -1;
+	int dddStart = -1;
+	int index = -1;
+	int windowIndex = -1;
 	std::vector<LampaBridgePlaylistItem> playlist;
 	CString bridgeSessionId;
 	CString bridgeClient;
@@ -27,6 +33,6 @@ namespace LampaBridgeJson {
 	CStringA EscapeJson(const CStringA& value);
 	CStringA EscapeJson(const CString& value);
 	CStringA BuildEnvelopeJson(int schema, const CStringA& type, const CStringA& client, const CStringA& sessionId, int64_t ts, const CStringA& payloadJson);
-	CStringA BuildStateResponse(const LampaBridgeEnvelope* state);
+	CStringA BuildStateResponse(const LampaBridgeSession& session, int64_t positionMs, int64_t durationMs, bool active, const LampaBridgeEnvelope* state);
 	CStringA BuildEventsResponse(const std::deque<LampaBridgeEnvelope>& events, int limit);
 }

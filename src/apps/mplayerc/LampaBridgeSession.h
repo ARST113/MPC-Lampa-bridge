@@ -22,8 +22,13 @@ struct LampaBridgePlaylistItem {
 	CString title;
 	CString url;
 	CString timelineHash;
+	CString thumbnail;
+	CString filename;
+	int season = -1;
+	int episode = -1;
 	double position = -1.0;
 	double duration = 0.0;
+	double timelinePercent = 0.0;
 };
 
 struct LampaBridgeSession {
@@ -47,6 +52,10 @@ struct LampaBridgeSession {
 	CString lastPlaybackState;
 	bool lastIsPlaying = false;
 	bool lastIsBuffering = false;
+	bool pendingNavigation = false;
+	int pendingTargetIndex = -1;
+	double pendingSeekPosition = -1.0;
+	CString pendingSeekTimelineHash;
 	void Clear();
 	bool HasActive() const;
 };
