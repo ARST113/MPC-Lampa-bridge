@@ -23,6 +23,10 @@ void LampaBridgeSession::Clear()
 	lastPlaybackState.Empty();
 	lastIsPlaying = false;
 	lastIsBuffering = false;
+	pendingNavigation = false;
+	pendingTargetIndex = -1;
+	pendingSeekPosition = -1.0;
+	pendingSeekTimelineHash.Empty();
 }
 
 bool LampaBridgeSession::HasActive() const
