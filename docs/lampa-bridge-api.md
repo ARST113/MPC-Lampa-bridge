@@ -59,3 +59,41 @@ Invoke-RestMethod -Uri http://127.0.0.1:13579/lampa/close -Method POST
 ## Future plan
 - Lampa plugin persistence of timeline hash/time.
 - Optional subtitles wiring and header/proxy enrichment.
+
+
+## Manual acceptance test: playlist open/select
+```powershell
+$playlist = @(
+  @{ title='Episode 1'; url='http://127.0.0.1:8090/stream/A?x=1&preload#ddd_i=1'; filename='ep1.mkv'; season=1; episode=1 },
+  @{ title='Episode 2'; url='http://127.0.0.1:8090/stream/B?x=1&play'; filename='ep2.mkv'; season=1; episode=2 },
+  @{ title='Episode 3'; url='http://127.0.0.1:8090/stream/C?x=1&play'; filename='ep3.mkv'; season=1; episode=3 }
+)
+$open = @{
+  url = $playlist[1].url
+  title = $playlist[1].title
+  playlist_index = 1
+  playlist = $playlist
+} | ConvertTo-Json -Depth 10
+
+$r = Invoke-RestMethod -Uri http://127.0.0.1:13579/lampa/open -Method POST -ContentType 'application/json' -Body $open
+$r
+Invoke-RestMethod http://127.0.0.1:13579/lampa/status
+Invoke-RestMethod "http://127.0.0.1:13579/state?sid=$($r.session_id)"
+
+# Expected:
+# - open.active_index = 1 and open.playlist_size = 3
+# - state.lastEvent.payload.windowIndex = 1 and playlistSize = 3
+# - visible MPC-BE playlist has all 3 items and starts from selected item
+# - MPC-BE UI Next/Prev changes playback and bridge windowIndex
+```
+
+
+## Port behavior
+- Bridge runs on MPC-BE Web Server configured port.
+- Default in these docs: `13579`.
+- Lampa plugin should allow configurable port or try `39677` then fallback to `13579`.
+
+## Additional acceptance tests
+- Test B: `POST /lampa/command {"command":"next"}` from item 2 should switch to item 3 (`windowIndex=2`).
+- Test C: `POST /lampa/command {"command":"prev"}` from item 3 should switch to item 2 (`windowIndex=1`).
+- Test D: open with `playlist_index=2` and `position>10`; verify seek applies only after item 3 becomes active.
