@@ -27,6 +27,8 @@ CString CLampaBridge::NormalizePlayableUrl(const CString& url) const
 	return out;
 }
 
+static CString LampaFileNameOnly(const CString& in);
+
 int CLampaBridge::ResolveActiveIndex(const LampaOpenPayload& payload) const
 {
 	const int candidates[] = { payload.playlistIndex, payload.startIndex, payload.dddIndex, payload.dddStart, payload.index, payload.windowIndex };
