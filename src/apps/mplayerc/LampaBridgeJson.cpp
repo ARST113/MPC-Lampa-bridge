@@ -148,14 +148,54 @@ CStringA LampaBridgeJson::BuildEnvelopeJson(int schema, const CStringA& type, co
 
 CStringA LampaBridgeJson::BuildStateResponse(const LampaBridgeSession& session, int64_t positionMs, int64_t durationMs, bool active, const LampaBridgeEnvelope* state)
 {
-	if (!session.HasActive()) return "{"ok":true,"state":null}";
+	if (!session.HasActive()) {
+		return "{\"ok\":true,\"state\":null}";
+	}
+
 	const auto& cur = session.items[(size_t)session.activeIndex];
 	CStringA lastEvent = state ? BuildEnvelopeJson(state->schema, state->type, state->client, state->sessionId, state->ts, state->payloadJson) : "null";
 	CStringA out;
-	out.Format("{"ok":true,"state":{"sessionId":"%s","active":%s,"position":%lld,"duration":%lld,"uri":"%s","title":"%s","windowIndex":%d,"playlistSize":%d,"currentItem":{"uri":"%s","url":"%s","title":"%s","filename":"%s","thumbnail":"%s","season":%d,"episode":%d,"timelineHash":"%s"},"lastEvent":%s}}",
-		EscapeJson(session.sessionId).GetString(), active ? "true" : "false", positionMs, durationMs,
-		EscapeJson(session.activeUrl).GetString(), EscapeJson(session.activeTitle).GetString(), session.activeIndex, (int)session.items.size(),
-		EscapeJson(session.activeUrl).GetString(), EscapeJson(session.activeUrl).GetString(), EscapeJson(session.activeTitle).GetString(), EscapeJson(cur.filename).GetString(), EscapeJson(cur.thumbnail).GetString(), cur.season, cur.episode, EscapeJson(cur.timelineHash).GetString(), lastEvent.GetString());
+
+	out.Format(
+		"{\"ok\":true,\"state\":{"
+		"\"sessionId\":\"%s\","
+		"\"active\":%s,"
+		"\"position\":%lld,"
+		"\"duration\":%lld,"
+		"\"uri\":\"%s\","
+		"\"title\":\"%s\","
+		"\"windowIndex\":%d,"
+		"\"playlistSize\":%d,"
+		"\"currentItem\":{"
+			"\"uri\":\"%s\","
+			"\"url\":\"%s\","
+			"\"title\":\"%s\","
+			"\"filename\":\"%s\","
+			"\"thumbnail\":\"%s\","
+			"\"season\":%d,"
+			"\"episode\":%d,"
+			"\"timelineHash\":\"%s\""
+		"},"
+		"\"lastEvent\":%s"
+		"}}",
+		EscapeJson(session.sessionId).GetString(),
+		active ? "true" : "false",
+		positionMs,
+		durationMs,
+		EscapeJson(session.activeUrl).GetString(),
+		EscapeJson(session.activeTitle).GetString(),
+		session.activeIndex,
+		(int)session.items.size(),
+		EscapeJson(session.activeUrl).GetString(),
+		EscapeJson(session.activeUrl).GetString(),
+		EscapeJson(session.activeTitle).GetString(),
+		EscapeJson(cur.filename).GetString(),
+		EscapeJson(cur.thumbnail).GetString(),
+		cur.season,
+		cur.episode,
+		EscapeJson(cur.timelineHash).GetString(),
+		lastEvent.GetString());
+
 	return out;
 }
 
